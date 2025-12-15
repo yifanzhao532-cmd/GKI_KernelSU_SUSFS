@@ -577,6 +577,26 @@ jobs:
             fi
           fi
 
+      - name: Archive and Upload Source # 新增的步骤
+        id: archive_source
+        run: |
+          CONFIG="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}"
+          ARCHIVE_NAME="patched-kernel-source-${CONFIG}.tar.gz"
+          
+          echo "Starting to archive the patched kernel source directory: $CONFIG"
+          # 使用 tar 命令打包源码目录，-c:创建, -z:gzip压缩, -f:指定文件名
+          tar -czf "$ARCHIVE_NAME" "$CONFIG"
+          
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+          echo "Source archive created: $ARCHIVE_NAME"
+
+      - name: Upload Patched Source Artifact # 新增的步骤
+        uses: actions/upload-artifact@v4
+        with:
+          name: Patched-Kernel-Source-${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}
+          path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 7 # 设置Artifact的保留天数
+          
       - name: Build with retry
         uses: nick-fields/retry@v3
         with:
