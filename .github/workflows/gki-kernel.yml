@@ -202,7 +202,27 @@ jobs:
             curl -LSs https://github.com/zzh20188/GKI_KernelSU_SUSFS/raw/refs/heads/legacy/fix_5.15.legacy -o fix_5.15.legacy.patch
             patch -p1 < fix_5.15.legacy.patch
           fi
+          
+      - name: Archive and Upload Source # 新增的步骤
+        id: archive_source
+        run: |
+          CONFIG="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}"
+          ARCHIVE_NAME="patched-kernel-source-${CONFIG}.tar.gz"
+          
+          echo "Starting to archive the patched kernel source directory: $CONFIG"
+          # 使用 tar 命令打包源码目录，-c:创建, -z:gzip压缩, -f:指定文件名
+          tar -czf "$ARCHIVE_NAME" "$CONFIG"
+          
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
+          echo "Source archive created: $ARCHIVE_NAME"
 
+      - name: Upload Patched Source Artifact # 新增的步骤
+        uses: actions/upload-artifact@v4
+        with:
+          name: Patched-Kernel-Source-${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}
+          path: ${{ env.ARCHIVE_NAME }}
+          retention-days: 7 # 设置Artifact的保留天数
+          
       - name: 使GKI在一加8E平台正常使用
         if: ${{ inputs.supp_op }}
         run: |
@@ -576,26 +596,6 @@ jobs:
               sed -i '/^CONFIG_LOCALVERSION=/ s/="\([^"]*\)"/="${{ inputs.version }}"/' ./common/arch/arm64/configs/gki_defconfig
             fi
           fi
-
-      - name: Archive and Upload Source # 新增的步骤
-        id: archive_source
-        run: |
-          CONFIG="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}"
-          ARCHIVE_NAME="patched-kernel-source-${CONFIG}.tar.gz"
-          
-          echo "Starting to archive the patched kernel source directory: $CONFIG"
-          # 使用 tar 命令打包源码目录，-c:创建, -z:gzip压缩, -f:指定文件名
-          tar -czf "$ARCHIVE_NAME" "$CONFIG"
-          
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
-          echo "Source archive created: $ARCHIVE_NAME"
-
-      - name: Upload Patched Source Artifact # 新增的步骤
-        uses: actions/upload-artifact@v4
-        with:
-          name: Patched-Kernel-Source-${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}
-          path: ${{ env.ARCHIVE_NAME }}
-          retention-days: 7 # 设置Artifact的保留天数
           
       - name: Build with retry
         uses: nick-fields/retry@v3
